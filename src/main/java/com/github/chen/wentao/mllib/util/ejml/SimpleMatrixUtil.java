@@ -3,6 +3,9 @@ package com.github.chen.wentao.mllib.util.ejml;
 import org.ejml.data.MatrixType;
 import org.ejml.simple.SimpleMatrix;
 
+import java.util.Random;
+import java.util.stream.IntStream;
+
 public class SimpleMatrixUtil {
 
 	public static SimpleMatrix shortDiagonal(int width, double value) {
@@ -71,5 +74,29 @@ public class SimpleMatrixUtil {
 		SimpleMatrix result = m.copy();
 		result.setColumn(column, 0, values);
 		return result;
+	}
+
+	public static SimpleMatrix shuffleRows(SimpleMatrix m, Random random) {
+		int cols = m.numCols();
+		int rows = m.numRows();
+		SimpleMatrix newMatrix = new SimpleMatrix(rows, cols, m.getType());
+		int[] copyRows = newShuffledArray(rows, random);
+		for (int y = 0; y < rows; y++) {
+			for (int x = 0; x < cols; x++) {
+				newMatrix.set(y, x, m.get(copyRows[y], x));
+			}
+		}
+		return newMatrix;
+	}
+
+	private static int[] newShuffledArray(int size, Random random) {
+		int[] array = IntStream.range(0, size).toArray();
+		for (int i = size - 1; i >= 0; i--) {
+			int swapIndex = random.nextInt(i + 1);
+			int temp = array[i];
+			array[i] = array[swapIndex];
+			array[swapIndex] = temp;
+		}
+		return array;
 	}
 }

@@ -15,19 +15,22 @@ public class Main {
 
 	private static void neuralNetworkTest() {
 		NeuralNetwork neuralNetwork = NeuralNetwork.emptyNetwork(2, 2, 1).randomlyInitialize(new Random());
-		DataSet dataSet = new DataSet.Builder()
-				.add(1.0, 1.0)
-				.add(1.0, 0.0)
-				.add(0.0, 1.0)
-				.add(0.0, 0.0)
+		FullLabeledDataSet fullDataSet = new FullLabeledDataSet.Builder()
+				.add(1.0, 1.0, 0)
+				.add(1.0, 0.0, 1)
+				.add(0.0, 1.0, 1)
+				.add(0.0, 0.0, 0)
 				.build();
-		LabeledDataSetTarget target = new LabeledDataSetTarget(0, 1, 1, 0);
 
-		System.out.println(neuralNetwork.costFunction(dataSet, target, 0.0));
+		fullDataSet.print(15, 10);
+		fullDataSet = fullDataSet.shuffle(new Random());
+		fullDataSet.print(15, 10);
 
-		neuralNetwork.train(dataSet, target, 1.0, 0.0, 5000);
+		System.out.println(neuralNetwork.costFunction(fullDataSet.getDataSet(), fullDataSet.getDataSetTarget(), 0.0));
 
-		System.out.println(neuralNetwork.costFunction(dataSet, target, 0.0));
+		neuralNetwork.train(fullDataSet.getDataSet(), fullDataSet.getDataSetTarget(), 1.0, 0.0, 50000);
+
+		System.out.println(neuralNetwork.costFunction(fullDataSet.getDataSet(), fullDataSet.getDataSetTarget(), 0.0));
 
 		neuralNetwork.predict(DataSet.single(1.0, 1.0)).print(15, 10);
 		neuralNetwork.predict(DataSet.single(0.0, 1.0)).print(15, 10);
