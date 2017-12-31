@@ -2,6 +2,10 @@ package com.github.chen.wentao.mllib.training;
 
 import org.ejml.simple.SimpleMatrix;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 public class DataSet implements MatrixWrapper {
 
 	private final SimpleMatrix dataSet;
@@ -33,5 +37,20 @@ public class DataSet implements MatrixWrapper {
 
 	public int numExamples() {
 		return dataSet.numRows();
+	}
+
+	public static class Builder {
+
+		private final List<double[]> data = new ArrayList<>();
+
+		public Builder add(double... data) {
+			this.data.add(data);
+			return this;
+		}
+
+		public DataSet build() {
+			double[] flattenData = this.data.stream().flatMapToDouble(Arrays::stream).toArray();
+			return new DataSet(new SimpleMatrix(data.size(), data.isEmpty() ? 0 : data.get(0).length, true, flattenData));
+		}
 	}
 }

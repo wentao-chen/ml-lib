@@ -1,5 +1,6 @@
 package com.github.chen.wentao.mllib.training;
 
+import com.github.chen.wentao.mllib.util.ejml.SimpleMatrixUtil;
 import org.ejml.simple.SimpleMatrix;
 
 public class LabeledDataSetTarget extends DataSetTarget {
@@ -15,16 +16,17 @@ public class LabeledDataSetTarget extends DataSetTarget {
 		assertValidValues();
 	}
 
-	public int getLabel(int exampleIndex) {
-		return (int) get(exampleIndex);
+	public SimpleMatrix toBinaryMatrix() {
+		SimpleMatrix initMatrix = getMatrix();
+		SimpleMatrix targetBinaryMatrix = SimpleMatrixUtil.filterEquals(initMatrix, 0);
+		for (int i = 1, labels = numLabels(); i < labels; i++) {
+			targetBinaryMatrix = targetBinaryMatrix.concatColumns(SimpleMatrixUtil.filterEquals(initMatrix, i));
+		}
+		return targetBinaryMatrix;
 	}
 
-	private static double[] intArrayToDouble(int[] data) {
-		double[] array = new double[data.length];
-		for (int i = 0; i < data.length; i++) {
-			array[i] = data[i];
-		}
-		return array;
+	public int getLabel(int exampleIndex) {
+		return (int) get(exampleIndex);
 	}
 
 	public int numLabels() {
@@ -48,5 +50,13 @@ public class LabeledDataSetTarget extends DataSetTarget {
 		for (int i = matrix.getNumElements() - 1; i >= 0; i--) {
 			assert(matrix.get(i) % 1.0 == 0.0);
 		}
+	}
+
+	private static double[] intArrayToDouble(int[] data) {
+		double[] array = new double[data.length];
+		for (int i = 0; i < data.length; i++) {
+			array[i] = data[i];
+		}
+		return array;
 	}
 }

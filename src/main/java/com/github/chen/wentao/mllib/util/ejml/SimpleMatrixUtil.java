@@ -62,4 +62,14 @@ public class SimpleMatrixUtil {
 		}
 		return new SimpleMatrix(target.numRows(), target.numCols(), true, data);
 	}
+
+	public static SimpleMatrix setColumn(SimpleMatrix m, int column, double value) {
+		double[] values = new double[m.numRows()];
+		for (int i = 0; i < values.length; i++) {
+			values[i] = value;
+		}
+		SimpleMatrix result = m.copy();
+		result.setColumn(column, 0, values);
+		return result;
+	}
 }

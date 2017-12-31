@@ -4,25 +4,13 @@ import com.github.chen.wentao.mllib.data.DataUtil;
 import com.github.chen.wentao.mllib.util.ejml.SimpleMatrixUtil;
 import org.ejml.simple.SimpleMatrix;
 
+import static com.github.chen.wentao.mllib.data.DataUtil.sigmoid;
 import static com.github.chen.wentao.mllib.util.ejml.SimpleMatrixUtil.ones;
 
 public class LogisticRegression {
 
 	private static final double SIGMOID_SCALE = Math.nextDown(1.0);
 	private static final double SIGMOID_OFFSET = Double.MIN_VALUE;
-
-	public static double sigmoid(double z) {
-		return 1.0 / (1.0 + Math.exp(-z));
-	}
-
-	/**
-	 * Performs the sigmoid function on every element of a matrix
-	 * @param m the matrix
-	 * @return a new matrix where each element is the sigmoid of the corresponding element in matrix {@code m}
-	 */
-	public static SimpleMatrix sigmoid(SimpleMatrix m) {
-		return m.negative().elementExp().plus(1.0).elementPower(-1.0);
-	}
 
 	/**
 	 * Calculates the hypothesis value for a data set given parameters theta
