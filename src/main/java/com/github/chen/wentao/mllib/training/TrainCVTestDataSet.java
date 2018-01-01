@@ -4,29 +4,35 @@ import org.ejml.simple.SimpleMatrix;
 
 import java.util.Random;
 
-public class TrainCVTestDataSet<T extends DataSetTarget> {
+public class TrainCVTestDataSet {
 
 	private final DataSet trainingSet;
-	private final T trainingSetTarget;
+	private final DataSetTarget trainingSetTarget;
 	private final DataSet crossValidationSet;
-	private final T crossValidationSetTarget;
+	private final DataSetTarget crossValidationSetTarget;
 	private final DataSet testSet;
-	private final T testSetTarget;
+	private final DataSetTarget testSetTarget;
+	private final FullDataSet fullTrainingSet;
+	private final FullDataSet fullCrossValidationSet;
+	private final FullDataSet fullTestSet;
 
-	public TrainCVTestDataSet(DataSet trainingSet, T trainingSetTarget, DataSet crossValidationSet, T crossValidationSetTarget, DataSet testSet, T testSetTarget) {
+	public TrainCVTestDataSet(DataSet trainingSet, DataSetTarget trainingSetTarget, DataSet crossValidationSet, DataSetTarget crossValidationSetTarget, DataSet testSet, DataSetTarget testSetTarget) {
 		this.trainingSet = trainingSet;
 		this.trainingSetTarget = trainingSetTarget;
 		this.crossValidationSet = crossValidationSet;
 		this.crossValidationSetTarget = crossValidationSetTarget;
 		this.testSet = testSet;
 		this.testSetTarget = testSetTarget;
+		this.fullTrainingSet = new FullDataSet(trainingSet, trainingSetTarget);
+		this.fullCrossValidationSet = new FullDataSet(crossValidationSet, crossValidationSetTarget);
+		this.fullTestSet = new FullDataSet(testSet, testSetTarget);
 	}
 
-	public static TrainCVTestDataSet<DataSetTarget> fromFullDataSet(FullDataSet fullDataSet,  Random random) {
+	public static TrainCVTestDataSet fromFullDataSet(FullDataSet fullDataSet,  Random random) {
 		return fromFullDataSet(fullDataSet, random, 0.6, 0.2, 0.2);
 	}
 
-	public static TrainCVTestDataSet<DataSetTarget> fromFullDataSet(FullDataSet fullDataSet, Random random, double trainProportion, double cvProportion, double testProportion) {
+	public static TrainCVTestDataSet fromFullDataSet(FullDataSet fullDataSet, Random random, double trainProportion, double cvProportion, double testProportion) {
 		fullDataSet = fullDataSet.shuffle(random);
 
 		DataSet dataSet = fullDataSet.getDataSet();
@@ -46,19 +52,19 @@ public class TrainCVTestDataSet<T extends DataSetTarget> {
 		SimpleMatrix targetMatrix = target.getMatrix();
 
 		DataSet train = new DataSet(dataSetMatrix.extractMatrix(0, trainSize, 0, dataSetMatrix.numCols()));
-		DataSetTarget trainTarget = new DataSetTarget(targetMatrix.extractMatrix(0, trainSize, 0, targetMatrix.numCols()));
+		DataSetTarget trainTarget = new DataSetTarget(targetMatrix.extractMatrix(0, trainSize, 0, targetMatrix.numCols()), target.numLabels());
 		DataSet cv = new DataSet(dataSetMatrix.extractMatrix(trainSize, trainSize + cvSize, 0, dataSetMatrix.numCols()));
-		DataSetTarget cvTarget = new DataSetTarget(targetMatrix.extractMatrix(trainSize, trainSize + cvSize, 0, targetMatrix.numCols()));
+		DataSetTarget cvTarget = new DataSetTarget(targetMatrix.extractMatrix(trainSize, trainSize + cvSize, 0, targetMatrix.numCols()), target.numLabels());
 		DataSet test = new DataSet(dataSetMatrix.extractMatrix(trainSize + cvSize, dataSetMatrix.numRows(), 0, dataSetMatrix.numCols()));
-		DataSetTarget testTarget = new DataSetTarget(targetMatrix.extractMatrix(trainSize + cvSize, targetMatrix.numRows(), 0, targetMatrix.numCols()));
-		return new TrainCVTestDataSet<>(train, trainTarget, cv, cvTarget, test, testTarget);
+		DataSetTarget testTarget = new DataSetTarget(targetMatrix.extractMatrix(trainSize + cvSize, targetMatrix.numRows(), 0, targetMatrix.numCols()), target.numLabels());
+		return new TrainCVTestDataSet(train, trainTarget, cv, cvTarget, test, testTarget);
 	}
 
 	public DataSet getTrainingSet() {
 		return trainingSet;
 	}
 
-	public T getTrainingSetTarget() {
+	public DataSetTarget getTrainingSetTarget() {
 		return trainingSetTarget;
 	}
 
@@ -66,7 +72,7 @@ public class TrainCVTestDataSet<T extends DataSetTarget> {
 		return crossValidationSet;
 	}
 
-	public T getCrossValidationSetTarget() {
+	public DataSetTarget getCrossValidationSetTarget() {
 		return crossValidationSetTarget;
 	}
 
@@ -74,7 +80,19 @@ public class TrainCVTestDataSet<T extends DataSetTarget> {
 		return testSet;
 	}
 
-	public T getTestSetTarget() {
+	public DataSetTarget getTestSetTarget() {
 		return testSetTarget;
+	}
+
+	public FullDataSet getFullTrainingSet() {
+		return fullTrainingSet;
+	}
+
+	public FullDataSet getFullCrossValidationSet() {
+		return fullCrossValidationSet;
+	}
+
+	public FullDataSet getFullTestSet() {
+		return fullTestSet;
 	}
 }

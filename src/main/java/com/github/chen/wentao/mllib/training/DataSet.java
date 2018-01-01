@@ -19,6 +19,20 @@ public class DataSet implements MatrixWrapper {
 	}
 
 	public DataSet addPowerTerms(double... powers) {
+		if (powers.length == 0) {
+			return this;
+		}
+		SimpleMatrix dataSet = this.dataSet;
+		for (double power : powers) {
+			dataSet = dataSet.concatColumns(this.dataSet.elementPower(power));
+		}
+		return new DataSet(dataSet);
+	}
+
+	public DataSet addPowerTerms(List<Double> powers) {
+		if (powers.isEmpty()) {
+			return this;
+		}
 		SimpleMatrix dataSet = this.dataSet;
 		for (double power : powers) {
 			dataSet = dataSet.concatColumns(this.dataSet.elementPower(power));

@@ -6,6 +6,14 @@ import org.ejml.simple.SimpleMatrix;
 
 public class LinearRegression {
 
+	public static SupervisedLearningAlgorithm<FeatureParameters> getAlgorithm(FeatureParameters initial, double alpha, double lambda, int numIterations) {
+		return (dataSet, target) -> LinearRegression.gradientDescent(dataSet, target, initial, alpha, lambda, numIterations);
+	}
+
+	public static CostFunction<FeatureParameters> getCostFunction(double lambda) {
+		return (theta, dataSet, target) -> costFunction(theta, dataSet, target, lambda);
+	}
+
 	/**
 	 * Calculates the hypothesis value for a data set given parameters theta
 	 *
@@ -14,7 +22,7 @@ public class LinearRegression {
 	 * @return m vector of the hypothesis value for each training example
 	 */
 	public static DataSetTarget hypothesis(FeatureParameters theta, DataSet dataSet) {
-		return new DataSetTarget(hypothesis(theta.getMatrix(), dataSet.getMatrix()));
+		return new DataSetTarget(hypothesis(theta.getMatrix(), dataSet.getMatrix()), 0);
 	}
 
 	/**

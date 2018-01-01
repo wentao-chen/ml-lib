@@ -1,5 +1,6 @@
 package com.github.chen.wentao.mllib;
 
+import com.github.chen.wentao.mllib.data.LearningCurve;
 import com.github.chen.wentao.mllib.data.scaling.FeatureScaler;
 import com.github.chen.wentao.mllib.data.scaling.FeatureStandardizer;
 import com.github.chen.wentao.mllib.training.*;
@@ -10,12 +11,42 @@ import java.util.Random;
 public class Main {
 
 	public static void main(String[] args) {
-		neuralNetworkTest();
+		learningCurvesTest();
+	}
+
+	private static void learningCurvesTest() {
+		FullDataSet fullDataSet = new FullDataSet.Builder()
+				.add(1.0, 2.0, 0).add(4.0, 3.0, 1).add(8.0, 6.0, 2)
+				.add(4.0, 6.0, 0).add(5.0, 4.0, 1).add(7.0, 7.0, 2)
+				.add(3.0, 4.0, 0).add(6.0, 3.0, 1).add(7.0, 6.0, 2)
+				.add(8.0, 0.0, 0).add(3.0, 3.0, 1).add(8.0, 8.0, 2)
+				.add(7.5, 5.0, 0).add(5.0, 2.0, 1).add(8.0, 7.0, 2)
+				.add(2.0, 0.3, 0).add(4.2, 2.1, 1).add(7.0, 8.0, 2)
+				.add(4.0, 1.0, 0).add(4.3, 1.8, 1).add(9.0, 8.0, 2)
+				.add(6.0, 0.1, 0).add(5.8, 2.8, 1).add(9.0, 7.0, 2)
+				.add(2.0, 7.0, 0).add(4.3, 3.9, 1).add(9.0, 6.0, 2)
+				.add(7.0, 1.0, 0).add(5.2, 3.5, 1)
+				.add(1.7, 3.0, 0).add(4.8, 2.7, 1)
+				.add(3.0, 0.8, 0).add(6.5, 4.2, 1)
+				.add(6.0, 5.2, 0).add(5.7, 1.7, 1)
+				.add(7.8, 3.9, 0)
+				.add(6.9, 2.5, 0)
+				.add(5.0, 5.0, 0)
+				.addPowerTerms(2.0)
+				.buildAndNormalize();
+		FeatureParameters initial = new FeatureParameters(0.0, 0.0, 0.0, 0.0, 0.0);
+		double lambda = 0.5;
+
+		SupervisedLearningAlgorithm<FeatureParameters[]> algorithm = LogisticRegression.getAlgorithmMulti(initial, 0.1, lambda, 100000);
+		CostFunction<FeatureParameters[]> costFunction = LogisticRegression.getCostFunctionMulti(lambda);
+		TrainCVTestDataSet trainCVTestDataSet = TrainCVTestDataSet.fromFullDataSet(fullDataSet, new Random());
+
+		LearningCurve.generateSetSizeLearningCurve(algorithm, costFunction, trainCVTestDataSet.getFullTrainingSet(), trainCVTestDataSet.getFullCrossValidationSet(), new Random(), 10).graphWithJFrame(600, 600);
 	}
 
 	private static void neuralNetworkTest() {
 		NeuralNetwork neuralNetwork = NeuralNetwork.emptyNetwork(2, 2, 1).randomlyInitialize(new Random());
-		FullLabeledDataSet fullDataSet = new FullLabeledDataSet.Builder()
+		FullDataSet fullDataSet = new FullDataSet.Builder()
 				.add(1.0, 1.0, 0)
 				.add(1.0, 0.0, 1)
 				.add(0.0, 1.0, 1)
@@ -42,7 +73,7 @@ public class Main {
 
 	private static void logisticRegressionTest() {
 		DataSet dataSet = new DataSet(new SimpleMatrix(29 + 9, 2, true, 1.0, 2.0, 4.0, 6.0, 3.0, 4.0, 8.0, 0.0, 7.5, 5.0, 2.0, 0.3, 4.0, 1.0, 6.0, 0.1, 2.0, 7.0, 7.0, 1.0, 1.7, 3.0, 3.0, 0.8, 6.0, 5.2, 7.8, 3.9, 6.9, 2.5, 5.0, 5.0, 4.0, 3.0, 5.0, 4.0, 6.0, 3.0, 3.0, 3.0, 5.0, 2.0, 4.2, 2.1, 4.3, 1.8, 5.8, 2.8, 4.3, 3.9, 5.2, 3.5, 4.8, 2.7, 6.5, 4.2, 5.7, 1.7, 8, 6, 7, 7, 7, 6, 8, 8, 8, 7, 7, 8, 9, 8, 9, 7, 9, 6)).addPowerTerms(2.0);
-		LabeledDataSetTarget target = new LabeledDataSetTarget(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2);
+		DataSetTarget target = new DataSetTarget(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2, 2);
 		FeatureParameters initial = new FeatureParameters(0.0, 0.0, 0.0, 0.0, 0.0);
 
 		FeatureScaler featureScaler = new FeatureStandardizer(dataSet);

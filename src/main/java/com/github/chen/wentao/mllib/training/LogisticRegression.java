@@ -9,6 +9,22 @@ import static com.github.chen.wentao.mllib.util.ejml.SimpleMatrixUtil.ones;
 
 public class LogisticRegression {
 
+	public static SupervisedLearningAlgorithm<FeatureParameters> getAlgorithm(FeatureParameters initial, double alpha, double lambda, int numIterations) {
+		return (dataSet, target) -> LogisticRegression.gradientDescent(dataSet, target, initial, alpha, lambda, numIterations);
+	}
+
+	public static SupervisedLearningAlgorithm<FeatureParameters[]> getAlgorithmMulti(FeatureParameters initial, double alpha, double lambda, int numIterations) {
+		return (dataSet, target) -> LogisticRegression.gradientDescentMulti(dataSet, target, initial, alpha, lambda, numIterations);
+	}
+
+	public static CostFunction<FeatureParameters> getCostFunction(double lambda) {
+		return (theta, dataSet, target) -> costFunction(theta, dataSet, target, lambda);
+	}
+
+	public static CostFunction<FeatureParameters[]> getCostFunctionMulti(double lambda) {
+		return (thetas, dataSet, target) -> costFunctionMulti(thetas, dataSet, target, lambda);
+	}
+
 	private static final double SIGMOID_SCALE = Math.nextDown(1.0);
 	private static final double SIGMOID_OFFSET = Double.MIN_VALUE;
 
@@ -19,7 +35,7 @@ public class LogisticRegression {
 	 * @return m vector of the hypothesis value for each training example
 	 */
 	public static DataSetTarget hypothesis(FeatureParameters theta, DataSet dataSet) {
-		return new DataSetTarget(hypothesis(theta.getMatrix(), dataSet.getMatrix()));
+		return new DataSetTarget(hypothesis(theta.getMatrix(), dataSet.getMatrix()), 2);
 	}
 
 	/**
@@ -38,13 +54,13 @@ public class LogisticRegression {
 	/**
 	 * Calculates the cost for a data set given parameters theta
 	 * @param theta (n + 1) vector of n parameter features (and bias parameter)
-	 * @param dataSet (m) x (n) matrix of m training examples and n features
+	 * @param dataSet (m) x (n + 1) matrix of m training examples and n features (with bias)
 	 * @param target (m) vector of the target values for each m training examples (each element should be either 0 or 1)
 	 * @param lambda the regularization parameter (greater or equal to 0)
 	 * @return double of the cost of the parameters for the data set
 	 */
 	public static double costFunction(FeatureParameters theta, DataSet dataSet, DataSetTarget target, double lambda) {
-		return costFunction(DataUtil.addBiasColumn(theta.getMatrix()), dataSet.getMatrix(), target.getMatrix(), lambda);
+		return costFunction(theta.getMatrix(), DataUtil.addBiasColumn(dataSet.getMatrix()), target.getMatrix(), lambda);
 	}
 
 	/**
@@ -62,6 +78,8 @@ public class LogisticRegression {
 		assert(target.numCols() == 1); // is vector
 		assertValidTargetValues(target, 2);
 		assert(lambda >= 0 && Double.isFinite(lambda));
+		assert(dataSet.numRows() > 0);
+		assert(!theta.hasUncountable());
 
 		double m = dataSet.numRows();
 		SimpleMatrix hypothesis = hypothesis(theta, dataSet)
@@ -81,7 +99,7 @@ public class LogisticRegression {
 	 * @param lambda the regularization parameter (greater or equal to 0)
 	 * @return double of the cost of the parameters for the data set
 	 */
-	public static double costFunctionMulti(FeatureParameters[] thetas, DataSet dataSet, LabeledDataSetTarget target, double lambda) {
+	public static double costFunctionMulti(FeatureParameters[] thetas, DataSet dataSet, DataSetTarget target, double lambda) {
 		return costFunctionMulti(convert(thetas), dataSet.getMatrix(), target.getMatrix(), lambda);
 	}
 
@@ -98,6 +116,7 @@ public class LogisticRegression {
 			assert(theta.numCols() == 1); // is vector
 			assert(theta.numRows() == dataSet.numCols() + 1); // correct number of features
 		}
+		assert(thetas.length > 0);
 		assert(dataSet.numRows() == target.numRows()); // correct number of training examples
 		assert(target.numCols() == 1); // is vector
 		assertValidTargetValues(target, thetas.length);
@@ -118,8 +137,8 @@ public class LogisticRegression {
 	 * @param dataSet (m) x (n + 1) matrix of m training examples and n features (and bias - first column vector should only 1s)
 	 * @return m vector of the hypothesis value for each training example
 	 */
-	public static LabeledDataSetTarget predict(FeatureParameters theta, DataSet dataSet) {
-		return new LabeledDataSetTarget(predict(theta.getMatrix(), dataSet.getMatrix()));
+	public static DataSetTarget predict(FeatureParameters theta, DataSet dataSet) {
+		return new DataSetTarget(predict(theta.getMatrix(), dataSet.getMatrix()), 2);
 	}
 
 	/**
@@ -146,8 +165,8 @@ public class LogisticRegression {
 	 * @param dataSet (m) x (n + 1) matrix of m training examples and n features (and bias - first column vector should only 1s)
 	 * @return m vector of the hypothesis value for each training example
 	 */
-	public static LabeledDataSetTarget predictMulti(FeatureParameters[] thetas, DataSet dataSet) {
-		return new LabeledDataSetTarget(predictMulti(convert(thetas), DataUtil.addBiasColumn(dataSet.getMatrix())));
+	public static DataSetTarget predictMulti(FeatureParameters[] thetas, DataSet dataSet) {
+		return new DataSetTarget(predictMulti(convert(thetas), DataUtil.addBiasColumn(dataSet.getMatrix())), thetas.length);
 	}
 
 	/**
@@ -189,8 +208,8 @@ public class LogisticRegression {
 	 * @param threshold double in range [0.0, 1.0] of the minimum sigmoid value which is classified with 1
 	 * @return m vector of the hypothesis value for each training example
 	 */
-	public static LabeledDataSetTarget predict(FeatureParameters theta, DataSet dataSet, double threshold) {
-		return new LabeledDataSetTarget(predict(theta.getMatrix(), dataSet.getMatrix(), threshold));
+	public static DataSetTarget predict(FeatureParameters theta, DataSet dataSet, double threshold) {
+		return new DataSetTarget(predict(theta.getMatrix(), dataSet.getMatrix(), threshold), 2);
 	}
 
 	/**
@@ -222,7 +241,7 @@ public class LogisticRegression {
 	 * @param numIterations the maximum number of iterations to be performed
 	 * @return n + 1 vector of the optimal parameters theta
 	 */
-	public static FeatureParameters gradientDescent(DataSet dataSet, LabeledDataSetTarget target, FeatureParameters initialTheta, double alpha, double lambda, int numIterations) {
+	public static FeatureParameters gradientDescent(DataSet dataSet, DataSetTarget target, FeatureParameters initialTheta, double alpha, double lambda, int numIterations) {
 		return new FeatureParameters(gradientDescent(DataUtil.addBiasColumn(dataSet.getMatrix()), target.getMatrix(), initialTheta.getMatrix(), alpha, lambda, numIterations));
 	}
 
@@ -273,7 +292,7 @@ public class LogisticRegression {
 	 * @param numIterations the maximum number of iterations to be performed
 	 * @return (number of labels)-length array of n + 1 vectors of the optimal parameters theta
 	 */
-	public static FeatureParameters[] gradientDescentMulti(DataSet dataSet, LabeledDataSetTarget target, FeatureParameters initialTheta, double alpha, double lambda, int numIterations) {
+	public static FeatureParameters[] gradientDescentMulti(DataSet dataSet, DataSetTarget target, FeatureParameters initialTheta, double alpha, double lambda, int numIterations) {
 		SimpleMatrix[] labelGradientDescents = gradientDescentMulti(dataSet.getMatrix(), target.getMatrix(), initialTheta.getMatrix(), target.numLabels(), alpha, lambda, numIterations);
 		FeatureParameters[] labelFeatureParameters = new FeatureParameters[labelGradientDescents.length];
 		for (int i = 0; i < labelFeatureParameters.length; i++) {

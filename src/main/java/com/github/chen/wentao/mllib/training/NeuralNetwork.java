@@ -14,6 +14,17 @@ import static com.github.chen.wentao.mllib.util.ejml.SimpleMatrixUtil.ones;
 
 public class NeuralNetwork {
 
+	public static SupervisedLearningAlgorithm<NeuralNetwork> getAlgorithm(NeuralNetwork network, double alpha, double lambda, int numIterations) {
+		return (dataSet, target) -> {
+			network.train(dataSet, target, alpha, lambda, numIterations);
+			return network;
+		};
+	}
+
+	public static CostFunction<NeuralNetwork> getCostFunction(double lambda) {
+		return (network, dataSet, target) -> network.costFunction(dataSet, target, lambda);
+	}
+
 	private final SimpleMatrix[] thetas;
 
 	public NeuralNetwork(SimpleMatrix[] thetas) {
@@ -84,7 +95,7 @@ public class NeuralNetwork {
 		return layer == 0 ? thetas[0].numCols() - 1 : thetas[layer - 1].numRows();
 	}
 
-	public double costFunction(DataSet dataSet, LabeledDataSetTarget target, double lambda) {
+	public double costFunction(DataSet dataSet, DataSetTarget target, double lambda) {
 		return costFunction(thetas, dataSet.getMatrix(), targetToMatrix(target), lambda);
 	}
 
@@ -113,16 +124,16 @@ public class NeuralNetwork {
 		return (target.negative().elementMult(lastLayer.elementLog()).minus(ones(target).minus(target).elementMult(ones(lastLayer).minus(lastLayer).elementLog())).elementSum() + regularizationCost) / m;
 	}
 
-	public LabeledDataSetTarget predict(DataSet dataSet) {
+	public DataSetTarget predict(DataSet dataSet) {
 		return numOutputs() == 1 ? predict(dataSet, 0.5) : predictMulti(dataSet);
 	}
 
-	public LabeledDataSetTarget predict(DataSet dataSet, double threshold) {
-		return new LabeledDataSetTarget(predict(thetas, dataSet.getMatrix(), threshold));
+	public DataSetTarget predict(DataSet dataSet, double threshold) {
+		return new DataSetTarget(predict(thetas, dataSet.getMatrix(), threshold), 2);
 	}
 
-	public LabeledDataSetTarget predictMulti(DataSet dataSet) {
-		return new LabeledDataSetTarget(predictMulti(thetas, dataSet.getMatrix()));
+	public DataSetTarget predictMulti(DataSet dataSet) {
+		return new DataSetTarget(predictMulti(thetas, dataSet.getMatrix()), numOutputs());
 	}
 
 	private static SimpleMatrix predict(SimpleMatrix[] thetas, SimpleMatrix dataSet, double threshold) {
@@ -196,7 +207,7 @@ public class NeuralNetwork {
 	 * @param lambda the regularization parameter (greater or equal to 0)
 	 * @return a ({@link #numLayers()})-length array of (m) x (si) matrices where si is the number of neurons in layer i of each neuron gradient value
 	 */
-	public SimpleMatrix[] backPropagation(DataSet dataSet, LabeledDataSetTarget target, double lambda) {
+	public SimpleMatrix[] backPropagation(DataSet dataSet, DataSetTarget target, double lambda) {
 		return backPropagation(thetas, dataSet.getMatrix(), targetToMatrix(target), lambda);
 	}
 
@@ -242,11 +253,11 @@ public class NeuralNetwork {
 		return grads;
 	}
 
-	public SimpleMatrix[] numericalGradient(DataSet dataSet, LabeledDataSetTarget target, double lambda) {
+	public SimpleMatrix[] numericalGradient(DataSet dataSet, DataSetTarget target, double lambda) {
 		return numericalGradient(dataSet, target, lambda, 1.0e-4);
 	}
 
-	public SimpleMatrix[] numericalGradient(DataSet dataSet, LabeledDataSetTarget target, double lambda, double epsilon) {
+	public SimpleMatrix[] numericalGradient(DataSet dataSet, DataSetTarget target, double lambda, double epsilon) {
 		return numericalGradient(thetas, dataSet.getMatrix(), targetToMatrix(target), lambda, epsilon);
 	}
 
@@ -281,7 +292,7 @@ public class NeuralNetwork {
 		return grads;
 	}
 
-	public void train(DataSet dataSet, LabeledDataSetTarget target, double alpha, double lambda, int numIterations) {
+	public void train(DataSet dataSet, DataSetTarget target, double alpha, double lambda, int numIterations) {
 		train(this.thetas, dataSet.getMatrix(), targetToMatrix(target), alpha, lambda, numIterations);
 	}
 
@@ -302,7 +313,7 @@ public class NeuralNetwork {
 		}
 	}
 
-	private SimpleMatrix targetToMatrix(LabeledDataSetTarget target) {
+	private SimpleMatrix targetToMatrix(DataSetTarget target) {
 		return numOutputs() == 1 ? target.getMatrix() : target.toBinaryMatrix();
 	}
 }
