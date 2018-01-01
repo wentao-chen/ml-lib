@@ -15,6 +15,18 @@ import static com.github.chen.wentao.mllib.util.ejml.SimpleMatrixUtil.ones;
 
 public class NeuralNetwork {
 
+	public static AlgorithmHypothesis getPredictorHypothesis(NeuralNetwork network) {
+		return network::predict;
+	}
+
+	public static AlgorithmHypothesis getPredictorHypothesis(NeuralNetwork network, double threshold) {
+		return dataSet -> network.predict(dataSet, threshold);
+	}
+
+	public static AlgorithmHypothesis getMultiPredictorHypothesis(NeuralNetwork network) {
+		return network::predictMulti;
+	}
+
 	public static SupervisedLearningAlgorithm<NeuralNetwork> getAlgorithm(Supplier<NeuralNetwork> networkGenerator, double alpha, double lambda, int numIterations) {
 		return (dataSet, target) -> {
 			NeuralNetwork network = networkGenerator.get();

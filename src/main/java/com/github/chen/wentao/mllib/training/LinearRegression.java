@@ -6,6 +6,10 @@ import org.ejml.simple.SimpleMatrix;
 
 public class LinearRegression {
 
+	public static AlgorithmHypothesis getHypothesis(FeatureParameters theta) {
+		return dataSet -> LinearRegression.hypothesis(theta, dataSet);
+	}
+
 	public static SupervisedLearningAlgorithm<FeatureParameters> getAlgorithm(FeatureParameters initial, double alpha, double lambda, int numIterations) {
 		return (dataSet, target) -> LinearRegression.gradientDescent(dataSet, target, initial, alpha, lambda, numIterations);
 	}

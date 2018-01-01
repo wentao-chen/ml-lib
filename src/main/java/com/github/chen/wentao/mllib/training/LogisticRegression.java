@@ -9,6 +9,22 @@ import static com.github.chen.wentao.mllib.util.ejml.SimpleMatrixUtil.ones;
 
 public class LogisticRegression {
 
+	public static AlgorithmHypothesis getHypothesis(FeatureParameters theta) {
+		return dataSet -> LogisticRegression.hypothesis(theta, dataSet);
+	}
+
+	public static AlgorithmHypothesis getPredictorHypothesis(FeatureParameters theta) {
+		return dataSet -> LogisticRegression.predict(theta, dataSet);
+	}
+
+	public static AlgorithmHypothesis getPredictorHypothesis(FeatureParameters theta, double threshold) {
+		return dataSet -> LogisticRegression.predict(theta, dataSet, threshold);
+	}
+
+	public static AlgorithmHypothesis getMultiPredictorHypothesis(FeatureParameters[] thetas) {
+		return dataSet -> LogisticRegression.predictMulti(thetas, dataSet);
+	}
+
 	public static SupervisedLearningAlgorithm<FeatureParameters> getAlgorithm(FeatureParameters initial, double alpha, double lambda, int numIterations) {
 		return (dataSet, target) -> LogisticRegression.gradientDescent(dataSet, target, initial, alpha, lambda, numIterations);
 	}
