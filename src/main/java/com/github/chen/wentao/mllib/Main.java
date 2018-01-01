@@ -7,11 +7,46 @@ import com.github.chen.wentao.mllib.training.*;
 import org.ejml.simple.SimpleMatrix;
 
 import java.util.Random;
+import java.util.stream.DoubleStream;
 
 public class Main {
 
 	public static void main(String[] args) {
-		learningCurvesTest();
+		findingOptimalLambdaTest();
+	}
+
+	private static void findingOptimalLambdaTest() {
+		FullDataSet fullDataSet = new FullDataSet.Builder()
+				.add(1.0, 2.0, 0).add(4.0, 3.0, 1).add(8.0, 6.0, 2)
+				.add(4.0, 6.0, 0).add(5.0, 4.0, 1).add(7.0, 7.0, 2)
+				.add(3.0, 4.0, 0).add(6.0, 3.0, 1).add(7.0, 6.0, 2)
+				.add(8.0, 0.0, 0).add(3.0, 3.0, 1).add(8.0, 8.0, 2)
+				.add(7.5, 5.0, 0).add(5.0, 2.0, 1).add(8.0, 7.0, 2)
+				.add(2.0, 0.3, 0).add(4.2, 2.1, 1).add(7.0, 8.0, 2)
+				.add(4.0, 1.0, 0).add(4.3, 1.8, 1).add(9.0, 8.0, 2)
+				.add(6.0, 0.1, 0).add(5.8, 2.8, 1).add(9.0, 7.0, 2)
+				.add(2.0, 7.0, 0).add(4.3, 3.9, 1).add(9.0, 6.0, 2)
+				.add(7.0, 1.0, 0).add(5.2, 3.5, 1)
+				.add(1.7, 3.0, 0).add(4.8, 2.7, 1)
+				.add(3.0, 0.8, 0).add(6.5, 4.2, 1)
+				.add(6.0, 5.2, 0).add(5.7, 1.7, 1)
+				.add(7.8, 3.9, 0)
+				.add(6.9, 2.5, 0)
+				.add(5.0, 5.0, 0)
+				.addPowerTerms(2.0)
+				.buildAndNormalize();
+		FeatureParameters initial = new FeatureParameters(0.0, 0.0, 0.0, 0.0, 0.0);
+
+		TrainCVTestDataSet trainCVTestDataSet = TrainCVTestDataSet.fromFullDataSet(fullDataSet, new Random());
+
+		DoubleStream testLambdaValues = DoubleStream.of(0.0, 0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56, 5.12, 10.24);
+
+		LearningCurve.generateLearningCurve(
+				lambda -> LogisticRegression.getAlgorithmMulti(initial, 0.1, lambda, 10000),
+				LogisticRegression::getCostFunctionMulti,
+				trainCVTestDataSet,
+				testLambdaValues
+		).graphWithJFrame("Regularization Parameter", "Lambda", false, 600, 600);
 	}
 
 	private static void learningCurvesTest() {
@@ -41,7 +76,8 @@ public class Main {
 		CostFunction<FeatureParameters[]> costFunction = LogisticRegression.getCostFunctionMulti(lambda);
 		TrainCVTestDataSet trainCVTestDataSet = TrainCVTestDataSet.fromFullDataSet(fullDataSet, new Random());
 
-		LearningCurve.generateSetSizeLearningCurve(algorithm, costFunction, trainCVTestDataSet.getFullTrainingSet(), trainCVTestDataSet.getFullCrossValidationSet(), new Random(), 10).graphWithJFrame(600, 600);
+		LearningCurve.generateSetSizeLearningCurve(algorithm, costFunction, trainCVTestDataSet.getFullTrainingSet(), trainCVTestDataSet.getFullCrossValidationSet(), new Random(), 10)
+				.graphWithJFrame("Learning Curves", "Number of training examples", false, 600, 600);
 	}
 
 	private static void neuralNetworkTest() {
