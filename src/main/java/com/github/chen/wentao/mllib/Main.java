@@ -47,6 +47,10 @@ public class Main {
 				trainCVTestDataSet,
 				testLambdaValues
 		).graphWithJFrame("Regularization Parameter", "Lambda", false, 600, 600);
+
+		FeatureParameters[] optimal = LogisticRegression.gradientDescentMulti(fullDataSet.getDataSet(), fullDataSet.getDataSetTarget(), initial, 0.1, 0.0, 10000);
+		System.out.println(LogisticRegression.getMultiPredictorHypothesis(optimal).findAccuracy(fullDataSet));
+		System.out.println(LogisticRegression.getMultiPredictorHypothesis(optimal).findF1Score(fullDataSet));
 	}
 
 	private static void learningCurvesTest() {
