@@ -7,6 +7,7 @@ import org.ejml.simple.SimpleMatrix;
 
 import java.util.Arrays;
 import java.util.Random;
+import java.util.function.Supplier;
 
 import static com.github.chen.wentao.mllib.data.DataUtil.sigmoid;
 import static com.github.chen.wentao.mllib.data.DataUtil.sigmoidGrad;
@@ -14,8 +15,9 @@ import static com.github.chen.wentao.mllib.util.ejml.SimpleMatrixUtil.ones;
 
 public class NeuralNetwork {
 
-	public static SupervisedLearningAlgorithm<NeuralNetwork> getAlgorithm(NeuralNetwork network, double alpha, double lambda, int numIterations) {
+	public static SupervisedLearningAlgorithm<NeuralNetwork> getAlgorithm(Supplier<NeuralNetwork> networkGenerator, double alpha, double lambda, int numIterations) {
 		return (dataSet, target) -> {
+			NeuralNetwork network = networkGenerator.get();
 			network.train(dataSet, target, alpha, lambda, numIterations);
 			return network;
 		};
