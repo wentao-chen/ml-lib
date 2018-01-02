@@ -1,5 +1,6 @@
 package com.github.chen.wentao.mllib;
 
+import com.github.chen.wentao.mllib.data.AnomalyDetector;
 import com.github.chen.wentao.mllib.data.LearningCurve;
 import com.github.chen.wentao.mllib.data.PrincipalComponentAnalysis;
 import com.github.chen.wentao.mllib.data.scaling.FeatureScaler;
@@ -22,7 +23,30 @@ import java.util.stream.IntStream;
 public class Main {
 
 	public static void main(String[] args) {
-		neuralNetworkTest();
+		anomalyDetectionTest();
+	}
+
+	private static void anomalyDetectionTest() {
+		FullDataSet dataSet = new FullDataSet.Builder()
+				.add(2.0, 2.0, 0.0).add(2.0, 2.0, 0.0).add(2.0, 2.0, 0.0).add(2.0, 2.0, 0.0).add(2.0, 2.0, 0.0).add(2.0, 2.0, 0.0)
+				.add(1.0, 1.0, 0.0).add(1.0, 1.0, 0.0).add(1.0, 1.0, 0.0).add(1.0, 1.0, 0.0).add(1.0, 1.0, 0.0).add(1.0, 1.0, 0.0)
+				.add(1.0, 2.0, 0.0).add(1.0, 2.0, 0.0).add(1.0, 2.0, 0.0).add(1.0, 2.0, 0.0).add(1.0, 2.0, 0.0).add(1.0, 2.0, 0.0)
+				.add(0.2, 1.4, 0.0).add(0.2, 1.4, 0.0).add(0.2, 1.4, 0.0).add(0.2, 1.4, 0.0).add(0.2, 1.4, 0.0).add(0.2, 1.4, 0.0)
+				.add(1.9, 1.6, 0.0).add(1.9, 1.6, 0.0).add(1.9, 1.6, 0.0).add(1.9, 1.6, 0.0).add(1.9, 1.6, 0.0).add(1.9, 1.6, 0.0)
+				.add(1.4, 1.2, 0.0).add(1.4, 1.2, 0.0).add(1.4, 1.2, 0.0).add(1.4, 1.2, 0.0).add(1.4, 1.2, 0.0).add(1.4, 1.2, 0.0)
+				.add(1.9, 1.2, 0.0).add(1.9, 1.2, 0.0).add(1.9, 1.2, 0.0).add(1.9, 1.2, 0.0).add(1.9, 1.2, 0.0).add(1.9, 1.2, 0.0)
+				.add(0.6, 1.8, 0.0).add(0.6, 1.8, 0.0).add(0.6, 1.8, 0.0).add(0.6, 1.8, 0.0).add(0.6, 1.8, 0.0).add(0.6, 1.8, 0.0)
+				.add(0.8, 1.3, 0.0).add(0.8, 1.3, 0.0).add(0.8, 1.3, 0.0).add(0.8, 1.3, 0.0).add(0.8, 1.3, 0.0).add(0.8, 1.3, 0.0)
+				.add(1.4, 1.8, 0.0).add(1.4, 1.8, 0.0).add(1.4, 1.8, 0.0).add(1.4, 1.8, 0.0).add(1.4, 1.8, 0.0).add(1.4, 1.8, 0.0)
+				.add(-1.9, 1.5, 0.0).add(-1.9, 1.5, 0.0).add(-1.9, 1.5, 0.0).add(-1.9, 1.5, 0.0).add(-1.9, 1.5, 0.0).add(-1.9, 1.5, 0.0)
+				.build();
+		TrainCVTestDataSet trainCVTestDataSet = TrainCVTestDataSet.fromFullDataSet(dataSet, new Random());
+
+		double[] epsilonTestValues = new double[] {0.001, 0.002, 0.003};
+		double optimalEpsilon = AnomalyDetector.findOptimalEpsilon(trainCVTestDataSet.getTrainingSet(), trainCVTestDataSet.getCrossValidationSet(), trainCVTestDataSet.getCrossValidationSetTarget(), epsilonTestValues);
+		System.out.println(optimalEpsilon);
+		AnomalyDetector.findAnomalies(trainCVTestDataSet.getTestSet(), optimalEpsilon).print(15, 10);
+		trainCVTestDataSet.getTestSetTarget().print(15, 10);
 	}
 
 	private static void pcaTest() {

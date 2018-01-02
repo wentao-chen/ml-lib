@@ -8,6 +8,7 @@ import java.util.Arrays;
 public class DataSetTarget implements MatrixWrapper {
 
 	private final SimpleMatrix dataSet;
+	private final SimpleMatrix binaryMatrix;
 	private final int labels;
 
 	public DataSetTarget(int... data) {
@@ -20,10 +21,15 @@ public class DataSetTarget implements MatrixWrapper {
 	}
 
 	public DataSetTarget(SimpleMatrix theta, Integer labels) {
-		assert(theta.numCols() == 1); // is vector
-
-		this.dataSet = theta;
-		this.labels = labels != null ? labels : countLabels();
+		if (theta.numCols() == 1) {
+			this.dataSet = theta;
+			this.labels = labels != null ? labels : countLabels();
+			this.binaryMatrix = computeBinaryMatrix(theta, this.labels);
+		} else {
+			this.dataSet = theta;
+			this.labels = theta.numCols();
+			this.binaryMatrix = theta;
+		}
 	}
 
 	@Override
@@ -40,9 +46,12 @@ public class DataSetTarget implements MatrixWrapper {
 	}
 
 	public SimpleMatrix toBinaryMatrix() {
-		SimpleMatrix initMatrix = getMatrix();
+		return binaryMatrix;
+	}
+
+	private static SimpleMatrix computeBinaryMatrix(SimpleMatrix initMatrix, int labels) {
 		SimpleMatrix targetBinaryMatrix = SimpleMatrixUtil.filterEquals(initMatrix, 0);
-		for (int i = 1, labels = numLabels(); i < labels; i++) {
+		for (int i = 1; i < labels; i++) {
 			targetBinaryMatrix = targetBinaryMatrix.concatColumns(SimpleMatrixUtil.filterEquals(initMatrix, i));
 		}
 		return targetBinaryMatrix;

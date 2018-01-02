@@ -5,17 +5,22 @@ import com.github.chen.wentao.mllib.util.ejml.SimpleMatrixUtil;
 import org.ejml.data.MatrixType;
 import org.ejml.simple.SimpleMatrix;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Random;
+import java.util.function.IntFunction;
 import java.util.function.Supplier;
 import java.util.function.ToIntBiFunction;
-import java.util.function.ToIntFunction;
 
 import static com.github.chen.wentao.mllib.data.DataUtil.sigmoid;
 import static com.github.chen.wentao.mllib.data.DataUtil.sigmoidGrad;
 import static com.github.chen.wentao.mllib.util.ejml.SimpleMatrixUtil.ones;
 
-public class NeuralNetwork {
+public class NeuralNetwork implements Serializable {
+
+	private static final long serialVersionUID = 4117915678580746872L;
 
 	public static AlgorithmHypothesis getPredictorHypothesis(NeuralNetwork network) {
 		return network::predict;
@@ -374,6 +379,40 @@ public class NeuralNetwork {
 			for (int layer = 0; layer < thetas.length; layer++) {
 				thetas[layer] = thetas[layer].minus(grad[layer].scale(alpha));
 			}
+		}
+	}
+
+    public void trainMiniBatch(IntFunction<FullDataSet> batchGenerator, double alpha, double lambda, int numIterations) {
+        trainMiniBatch(this.thetas, batchGenerator, alpha, lambda, numIterations);
+    }
+
+    private void trainMiniBatch(SimpleMatrix[] thetas, IntFunction<FullDataSet> batchGenerator, double alpha, double lambda, int numIterations) {
+        assert (alpha > 0 && Double.isFinite(alpha));
+
+        for (int i = 0; i < numIterations; i++) {
+            FullDataSet batch = batchGenerator.apply(i);
+            SimpleMatrix dataSetBatch = batch.getDataSet().getMatrix();
+            SimpleMatrix targetBatch = targetToMatrix(batch.getDataSetTarget());
+            SimpleMatrix[] grad = backPropagation(thetas, dataSetBatch, targetBatch, lambda);
+            for (int layer = 0; layer < thetas.length; layer++) {
+                thetas[layer] = thetas[layer].minus(grad[layer].scale(alpha));
+            }
+        }
+    }
+
+	public static NeuralNetwork loadFromFileBinary(String directoryName) throws IOException {
+		String[] fileNames = new File(directoryName).list((dir, name) -> name.toLowerCase().endsWith(".nnbin"));
+		if (fileNames == null) throw new IOException();
+		SimpleMatrix[] thetas = new SimpleMatrix[fileNames.length];
+		for (int i = 0; i < thetas.length; i++) {
+			thetas[i] = SimpleMatrix.loadBinary(directoryName + "/" + i + ".nnbin");
+		}
+		return new NeuralNetwork(thetas);
+	}
+
+	public void saveToFileBinary(String directory) throws IOException {
+		for (int i = 0; i < thetas.length; i++) {
+			thetas[i].saveToFileBinary(directory + "/" + i + ".nnbin");
 		}
 	}
 
