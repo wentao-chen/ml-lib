@@ -5,14 +5,48 @@ import com.github.chen.wentao.mllib.data.scaling.FeatureScaler;
 import com.github.chen.wentao.mllib.data.scaling.FeatureStandardizer;
 import com.github.chen.wentao.mllib.training.*;
 import org.ejml.simple.SimpleMatrix;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartPanel;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
 
+import javax.swing.*;
+import java.util.Map;
 import java.util.Random;
 import java.util.stream.DoubleStream;
+import java.util.stream.IntStream;
 
 public class Main {
 
 	public static void main(String[] args) {
-		findingOptimalLambdaTest();
+		kMeansClusteringTest();
+	}
+
+	private static void kMeansClusteringTest() {
+		DataSet dataSet = new DataSet.Builder()
+				.add(1.0, 1.0)
+				.add(1.0, 2.0)
+				.add(2.0, 1.0)
+				.add(6.0, 7.0)
+				.add(7.0, 7.0)
+				.add(7.0, 6.0)
+				.add(13.0, 14.0)
+				.add(14.0, 14.0)
+				.add(14.0, 13.0)
+				.build();
+
+		Map<Integer, Double> kMeansCosts = KMeansClustering.kMeansCostPerCluster(dataSet, new Random(), 10, IntStream.range(1, dataSet.numExamples()).toArray());
+		XYSeries series = new XYSeries("Data");
+		kMeansCosts.forEach(series::add);
+
+		JFreeChart chart = ChartFactory.createXYLineChart("K-Means Clustering", "Number of clusters (K)", "Cost", new XYSeriesCollection(series), PlotOrientation.VERTICAL, true, true, true);
+		JFrame frame = new JFrame("K-Means Clustering");
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame.add(new ChartPanel(chart));
+		frame.setSize(600, 600);
+		frame.setVisible(true);
 	}
 
 	private static void findingOptimalLambdaTest() {
