@@ -8,6 +8,8 @@ import org.ejml.simple.SimpleMatrix;
 import java.util.Arrays;
 import java.util.Random;
 import java.util.function.Supplier;
+import java.util.function.ToIntBiFunction;
+import java.util.function.ToIntFunction;
 
 import static com.github.chen.wentao.mllib.data.DataUtil.sigmoid;
 import static com.github.chen.wentao.mllib.data.DataUtil.sigmoidGrad;
@@ -25,6 +27,22 @@ public class NeuralNetwork {
 
 	public static AlgorithmHypothesis getMultiPredictorHypothesis(NeuralNetwork network) {
 		return network::predictMulti;
+	}
+
+	public static SupervisedLearningAlgorithm<NeuralNetwork> getMiniBatchAlgorithm(Supplier<NeuralNetwork> networkGenerator, double alpha, double lambda, int numIterations, ToIntBiFunction<DataSet, DataSetTarget> batchSizeGenerator) {
+		return (dataSet, target) -> {
+			NeuralNetwork network = networkGenerator.get();
+			network.trainMiniBatch(dataSet, target, alpha, lambda, numIterations, batchSizeGenerator.applyAsInt(dataSet, target));
+			return network;
+		};
+	}
+
+	public static SupervisedLearningAlgorithm<NeuralNetwork> getMiniBatchAlgorithm(Supplier<NeuralNetwork> networkGenerator, double alpha, double lambda, int numIterations, int batchSize) {
+		return (dataSet, target) -> {
+			NeuralNetwork network = networkGenerator.get();
+			network.trainMiniBatch(dataSet, target, alpha, lambda, numIterations, batchSize);
+			return network;
+		};
 	}
 
 	public static SupervisedLearningAlgorithm<NeuralNetwork> getAlgorithm(Supplier<NeuralNetwork> networkGenerator, double alpha, double lambda, int numIterations) {
@@ -321,6 +339,38 @@ public class NeuralNetwork {
 
 		for (int i = 0; i < numIterations; i++) {
 			SimpleMatrix[] grad = backPropagation(thetas, dataSet, target, lambda);
+			for (int layer = 0; layer < thetas.length; layer++) {
+				thetas[layer] = thetas[layer].minus(grad[layer].scale(alpha));
+			}
+		}
+	}
+
+	public void trainStochastic(DataSet dataSet, DataSetTarget target, double alpha, double lambda, int numIterations) {
+		trainMiniBatch(dataSet, target, alpha, lambda, numIterations, 1);
+	}
+
+	public void trainMiniBatch(DataSet dataSet, DataSetTarget target, double alpha, double lambda, int numIterations, int batchSize) {
+		if (batchSize == dataSet.numExamples()) {
+			train(this.thetas, dataSet.getMatrix(), targetToMatrix(target), alpha, lambda, numIterations);
+		} else {
+			trainMiniBatch(this.thetas, dataSet.getMatrix(), targetToMatrix(target), alpha, lambda, numIterations, batchSize);
+		}
+	}
+
+	private static void trainMiniBatch(SimpleMatrix[] thetas, SimpleMatrix dataSet, SimpleMatrix target, double alpha, double lambda, int numIterations, int batchSize) {
+		assert (alpha > 0 && Double.isFinite(alpha));
+
+		int m = dataSet.numRows();
+		for (int i = 0, batchIndex = 0; i < numIterations; i++, batchIndex++) {
+			int rowsStart = batchIndex * batchSize;
+			int rowsEnd = rowsStart + batchSize;
+			if (rowsEnd >= m) {
+				rowsEnd = m;
+				batchIndex = 0;
+			}
+			SimpleMatrix dataSetBatch = dataSet.rows(rowsStart, rowsEnd);
+			SimpleMatrix targetBatch = target.rows(rowsStart, rowsEnd);
+			SimpleMatrix[] grad = backPropagation(thetas, dataSetBatch, targetBatch, lambda);
 			for (int layer = 0; layer < thetas.length; layer++) {
 				thetas[layer] = thetas[layer].minus(grad[layer].scale(alpha));
 			}
