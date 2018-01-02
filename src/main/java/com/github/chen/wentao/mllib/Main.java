@@ -1,6 +1,7 @@
 package com.github.chen.wentao.mllib;
 
 import com.github.chen.wentao.mllib.data.LearningCurve;
+import com.github.chen.wentao.mllib.data.PrincipalComponentAnalysis;
 import com.github.chen.wentao.mllib.data.scaling.FeatureScaler;
 import com.github.chen.wentao.mllib.data.scaling.FeatureStandardizer;
 import com.github.chen.wentao.mllib.training.*;
@@ -21,7 +22,25 @@ import java.util.stream.IntStream;
 public class Main {
 
 	public static void main(String[] args) {
-		kMeansClusteringTest();
+		pcaTest();
+	}
+
+	private static void pcaTest() {
+		DataSet dataSet = new DataSet.Builder()
+				.add(1.0, 1.0)
+				.add(1.0, 2.0)
+				.add(2.0, 1.0)
+				.add(6.0, 7.0)
+				.add(7.0, 7.0)
+				.add(7.0, 6.0)
+				.add(13.0, 14.0)
+				.add(14.0, 14.0)
+				.add(14.0, 13.0)
+				.build();
+		int k = PrincipalComponentAnalysis.findOptimalTargetFeaturesCount(dataSet);
+		System.out.println(k);
+		System.out.println(PrincipalComponentAnalysis.cost(dataSet, k));
+		PrincipalComponentAnalysis.reduce(dataSet, k).print(15, 10);
 	}
 
 	private static void kMeansClusteringTest() {
