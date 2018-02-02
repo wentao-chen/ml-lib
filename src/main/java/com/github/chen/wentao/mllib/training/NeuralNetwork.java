@@ -10,7 +10,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Random;
-import java.util.function.IntFunction;
 import java.util.function.Supplier;
 import java.util.function.ToIntBiFunction;
 
@@ -58,8 +57,20 @@ public class NeuralNetwork implements Serializable {
 		};
 	}
 
+	public static StreamSupervisedLearningAlgorithm<NeuralNetwork> getStreamAlgorithm(Supplier<NeuralNetwork> networkGenerator, double alpha, double lambda, int numIterations) {
+		return dataSet -> {
+			NeuralNetwork network = networkGenerator.get();
+			network.trainMiniBatch(dataSet, alpha, lambda, numIterations);
+			return network;
+		};
+	}
+
 	public static CostFunction<NeuralNetwork> getCostFunction(double lambda) {
 		return (network, dataSet, target) -> network.costFunction(dataSet, target, lambda);
+	}
+
+	public static StreamCostFunction<NeuralNetwork> getStreamCostFunction(double lambda) {
+		return (network, dataSetStream) -> network.costFunction(dataSetStream, lambda);
 	}
 
 	private final SimpleMatrix[] thetas;
@@ -151,6 +162,24 @@ public class NeuralNetwork implements Serializable {
 		SimpleMatrix lastLayer = activations[activations.length - 1].transpose(); // For convenience
 
 		// Compute cost
+		double regularizationCost = regularizationCost(thetas, lambda);
+		return (target.negative().elementMult(lastLayer.elementLog()).minus(ones(target).minus(target).elementMult(ones(lastLayer).minus(lastLayer).elementLog())).elementSum() + regularizationCost) / m;
+	}
+
+	public double costFunction(BatchFullDataSetStream dataSetStream, double lambda) {
+		long dataSize = 0;
+		double totalCost = 0;
+		for (int i = dataSetStream.numBatches() - 1; i >= 0; i--) {
+			FullDataSet batch = dataSetStream.getBatch(i);
+			int batchSize = batch.numExamples();
+			totalCost += costFunction(batch.getDataSet(), batch.getDataSetTarget(), 0.0) * batchSize;
+			dataSize += batchSize;
+		}
+		double regularizationCost = regularizationCost(thetas, lambda);
+		return (totalCost + regularizationCost) / dataSize;
+	}
+
+	private static double regularizationCost(SimpleMatrix[] thetas, double lambda) {
 		double regularizationCost = 0.0;
 		if (lambda > 0) {
 			for (SimpleMatrix theta : thetas) {
@@ -158,7 +187,7 @@ public class NeuralNetwork implements Serializable {
 			}
 			regularizationCost *= lambda / 2.0;
 		}
-		return (target.negative().elementMult(lastLayer.elementLog()).minus(ones(target).minus(target).elementMult(ones(lastLayer).minus(lastLayer).elementLog())).elementSum() + regularizationCost) / m;
+		return regularizationCost;
 	}
 
 	public DataSetTarget predict(DataSet dataSet) {
@@ -382,15 +411,15 @@ public class NeuralNetwork implements Serializable {
 		}
 	}
 
-    public void trainMiniBatch(IntFunction<FullDataSet> batchGenerator, double alpha, double lambda, int numIterations) {
+    public void trainMiniBatch(BatchFullDataSetStream batchGenerator, double alpha, double lambda, int numIterations) {
         trainMiniBatch(this.thetas, batchGenerator, alpha, lambda, numIterations);
     }
 
-    private void trainMiniBatch(SimpleMatrix[] thetas, IntFunction<FullDataSet> batchGenerator, double alpha, double lambda, int numIterations) {
+    private void trainMiniBatch(SimpleMatrix[] thetas, BatchFullDataSetStream batchGenerator, double alpha, double lambda, int numIterations) {
         assert (alpha > 0 && Double.isFinite(alpha));
 
         for (int i = 0; i < numIterations; i++) {
-            FullDataSet batch = batchGenerator.apply(i);
+            FullDataSet batch = batchGenerator.getBatch(i);
             SimpleMatrix dataSetBatch = batch.getDataSet().getMatrix();
             SimpleMatrix targetBatch = targetToMatrix(batch.getDataSetTarget());
             SimpleMatrix[] grad = backPropagation(thetas, dataSetBatch, targetBatch, lambda);
@@ -418,5 +447,9 @@ public class NeuralNetwork implements Serializable {
 
 	private SimpleMatrix targetToMatrix(DataSetTarget target) {
 		return numOutputs() == 1 ? target.getMatrix() : target.toBinaryMatrix();
+	}
+
+	public SimpleMatrix[] getThetas() {
+		return thetas;
 	}
 }
