@@ -3,6 +3,7 @@ package com.github.chen.wentao.mllib.data;
 import com.github.chen.wentao.mllib.training.*;
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartPanel;
+import org.jfree.chart.ChartUtilities;
 import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.LogAxis;
 import org.jfree.chart.plot.PlotOrientation;
@@ -10,14 +11,23 @@ import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
+import java.awt.BorderLayout;
+import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.function.DoubleFunction;
+import java.util.function.IntFunction;
+import java.util.logging.Logger;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 
 public class LearningCurve {
+
+	private static final Logger LOGGER = Logger.getLogger(LearningCurve.class.getName());
 
 	private final Map<Double, Double> trainError = new HashMap<>();
 	private final Map<Double, Double> cvError = new HashMap<>();
@@ -44,6 +54,18 @@ public class LearningCurve {
 		}
 	}
 
+	public Map<Double, Double> getTrainingError() {
+		return new HashMap<>(trainError);
+	}
+
+	public Map<Double, Double> getCrossValidationError() {
+		return new HashMap<>(cvError);
+	}
+
+	public Map<Double, Double> getTestError() {
+		return new HashMap<>(testError);
+	}
+
 	public static <T> LearningCurve generateSetSizeLearningCurve(SupervisedLearningAlgorithm<T> learningAlgorithm, CostFunction<T> cost, FullDataSet trainingDataSet, FullDataSet crossValidationDataSet, Random random) {
 		return generateSetSizeLearningCurve(learningAlgorithm, cost, trainingDataSet, crossValidationDataSet, random, IntStream.range(1, trainingDataSet.numExamples() + 1).toArray());
 	}
@@ -62,6 +84,20 @@ public class LearningCurve {
 			T optimalParamsTrain = learningAlgorithm.findOptimalParameters(trainDataSubset.getDataSet(), trainDataSubset.getDataSetTarget());
 			learningCurve.addTrainError(size, cost.apply(optimalParamsTrain, trainDataSubset.getDataSet(), trainDataSubset.getDataSetTarget()));
 			learningCurve.addCVError(size, cost.apply(optimalParamsTrain, cvDataSet, cvDataSetTarget));
+		}
+		return learningCurve;
+	}
+
+	public static <T> LearningCurve generateSetSizeLearningCurve(StreamSupervisedLearningAlgorithm<T> learningAlgorithm, StreamCostFunction<T> cost, IntFunction<BatchFullDataSetStream> trainingDataSetGenerator, BatchFullDataSetStream crossValidationDataSet, int[] testSizes) {
+		LearningCurve learningCurve = new LearningCurve();
+		for (int size : testSizes) {
+			LOGGER.info(() -> "Generating learning curve for test size " + size);
+			BatchFullDataSetStream trainDataSubset = trainingDataSetGenerator.apply(size);
+			LOGGER.info(() -> "Training network for test size " + size);
+			T optimalParamsTrain = learningAlgorithm.findOptimalParameters(trainDataSubset);
+			LOGGER.info(() -> "Calculating learning curve costs for test size " + size);
+			learningCurve.addTrainError(size, cost.apply(optimalParamsTrain, trainDataSubset));
+			learningCurve.addCVError(size, cost.apply(optimalParamsTrain, crossValidationDataSet));
 		}
 		return learningCurve;
 	}
@@ -120,11 +156,37 @@ public class LearningCurve {
 	public void graphWithJFrame(String title, String xAxisLabel, boolean useLogAxis, int width, int height) {
 		JFreeChart chart = graphToChart(title, xAxisLabel, useLogAxis);
 		JFrame frame = new JFrame("Learning Curves");
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		JPanel chartPanel = new ChartPanel(chart);
-		frame.add(chartPanel);
+		frame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+		JPanel mainPanel = new JPanel(new BorderLayout());
+		mainPanel.add(new ChartPanel(chart), BorderLayout.CENTER);
+		JPanel buttonPanel = new JPanel(new BorderLayout());
+		JButton saveButton = new JButton("Save");
+		saveButton.addActionListener(e -> {
+			JFileChooser fileChooser = new JFileChooser(System.getProperty("user.dir"));
+			fileChooser.setFileFilter(new FileNameExtensionFilter(".png", "png"));
+			if (fileChooser.showSaveDialog(frame) == JFileChooser.APPROVE_OPTION) {
+				String fileName = fileChooser.getSelectedFile().toString();
+				if (!fileName.toLowerCase().endsWith(".png")) {
+					fileName += ".png";
+				}
+				File file = new File(fileName);
+				if (file.exists()) {
+					if (JOptionPane.showConfirmDialog(frame, "Overwrite existing: " + fileName) != JOptionPane.YES_OPTION) {
+						return;
+					}
+				}
+				try {
+					ChartUtilities.saveChartAsPNG(file, chart, width, height);
+					JOptionPane.showMessageDialog(frame, "Saved");
+				} catch (IOException e1) {
+					JOptionPane.showMessageDialog(frame, "IOException " + e1);
+				}
+			}
+		});
+		buttonPanel.add(saveButton, BorderLayout.EAST);
+		mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+		frame.add(mainPanel);
 		frame.setSize(width, height);
 		frame.setVisible(true);
-		chartPanel.revalidate();
 	}
 }
